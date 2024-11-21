@@ -1,0 +1,100 @@
+### 2. Theoretical Challenge
+
+Suppose you have a CSV file with the data below.
+
+A1: 5, A2: 7, A3: 9, B1: 3, B2: 8, B3: =4+5, C1: =5+A1, C2: =A2+B2, C3: =C2+B3
+
+This can be represented in an excel sheet below:
+
+|  | A | B | C |
+| --- | --- | --- | --- |
+| 1 | 5 | 3 | =5+A1 |
+| 2 | 7 | 8 | =A2+B2 |
+| 3 | 9 | =4+5 | =C2+B3 |
+
+I want a program that will take the CSV input above and produce CSV output with the results.  If
+
+it is a value, then return a value.  If it is a formula then calculate the formula and return the
+
+value of that formula.
+
+1. How will you tackle the challenge above?
+
+2. What type of errors you would you check for?
+
+3. How might a user break your code?
+
+
+1. How will you tackle the challenge above?
+To solve this challenge, we can approach it step-by-step:
+
+Step 1: Parse the CSV input
+Read the CSV file: The first task is to read the CSV file and convert it into a data structure that can hold the values and formulas. A 2D array (or list of lists) can be used to represent the rows and columns in the spreadsheet.
+Step 2: Process formulas and values
+Check if the cell contains a value or formula:
+If the cell contains a number, simply store the number.
+If the cell contains a formula (e.g., =A1+B1), you need to evaluate the formula.
+Evaluate formulas:
+For each formula, parse the formula to identify cell references (e.g., A1, B3).
+Calculate the value of the referenced cells (this will involve resolving the values of the cells referenced by the formula).
+Handle dependencies: You need to ensure formulas that depend on other cells are calculated in the correct order. This might involve iterating through the grid multiple times, calculating dependencies before referencing them.
+Step 3: Calculate and replace formulas
+Recursive Evaluation: When encountering a formula, you should recursively evaluate its components, replacing cell references with actual values (e.g., if a formula references A1, you need to evaluate A1 before evaluating the formula).
+
+Handle references to other cells: For example, when evaluating C1, which contains =5+A1, you'll need to first evaluate A1 to get its value, then compute 5 + A1.
+
+Step 4: Output the final results in CSV format
+After all cells have been evaluated, output the results as a CSV with the computed values replacing the formulas.
+Pseudocode:
+java
+Copy code
+// Parse CSV into a 2D array of cells
+// For each cell, check if it's a formula or a value
+// If it's a formula, recursively evaluate the formula by resolving cell references
+// Output the results back into a new CSV file
+
+// Sample function to evaluate a formula
+public double evaluateFormula(String formula, Map<String, Double> cellValues) {
+    // Parse the formula (e.g., =A1+B2)
+    // Resolve cell references (e.g., A1 -> value of A1)
+    // Compute the result
+    return result;
+}
+2. What type of errors would you check for?
+Invalid Cell References: A formula may reference a non-existent cell or a cell that has not yet been evaluated.
+
+For example, =A1 + Z100 could be invalid if Z100 does not exist in the data.
+Circular References: If a formula depends on itself directly or indirectly, this will result in an infinite loop.
+
+Example: A1 = B1 + 1 and B1 = A1 + 2 creates a circular dependency.
+Malformed Formulas: If a formula does not adhere to a recognizable structure (e.g., missing operators or invalid syntax), an error should be thrown.
+
+Example: =A1+ or =+A1B2 should be caught as invalid.
+Incorrect Data Types: If a cell is expected to have a number but contains a non-numeric value, the program should either catch this as an error or attempt to convert it (if possible).
+
+Division by Zero: If a formula attempts to divide by zero, an exception or error message should be thrown.
+
+Example: =A1/0.
+Formula Evaluation Order: Ensure that cells are evaluated in the correct order, resolving dependencies before evaluating cells that rely on those values.
+
+3. How might a user break your code?
+Several issues could arise if a user improperly constructs formulas or provides data in an unsupported format:
+
+Circular Dependencies: If a user creates circular references (e.g., A1 = B1 + 1 and B1 = A1 + 2), the code could fall into an infinite loop or cause stack overflow.
+
+Invalid Formulas: Users might input formulas that don't follow a recognizable syntax or that reference invalid cells (e.g., =A1+B1000, where B1000 doesn't exist).
+
+Unsupported Functions: If the formula uses unsupported functions (e.g., =SUM(A1:A3)), and the program is not equipped to handle such functions, it could lead to errors or incorrect results.
+
+Non-Numeric Data: If a user inputs text or non-numeric data where numbers are expected, the program might break unless it's designed to handle such cases.
+
+Empty Cells: If cells that are referenced by formulas are left empty (i.e., no value assigned), it could lead to null values or NaN results.
+
+Incorrect CSV Formatting: Users could create a CSV file with invalid formatting, such as mismatched quotes, missing commas, or missing rows/columns, which would lead to parsing errors.
+
+Strategies for Handling Breakage:
+Input Validation: Validate the CSV file and formulas before processing.
+Error Handling: Implement try-catch blocks and proper logging to handle unexpected situations gracefully.
+Circular Reference Detection: Use a set to track cells being evaluated to detect circular dependencies.
+Formula Parsing Libraries: Use libraries that handle complex formula parsing and evaluation if needed (e.g., a math expression parser library).
+By implementing thorough input validation, proper error handling, and tracking cell evaluations to avoid circular dependencies, you can mitigate most of these risks and ensure that your program handles various edge cases effectively.
