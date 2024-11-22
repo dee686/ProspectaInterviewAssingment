@@ -24,20 +24,30 @@ value of that formula.
 
 3. How might a user break your code?
 
+****************************************************************************
+
+ANSWERS
+**************************************************
+
 
 1. How will you tackle the challenge above?
 To solve this challenge, we can approach it step-by-step:
 
 Step 1: Parse the CSV input
 Read the CSV file: The first task is to read the CSV file and convert it into a data structure that can hold the values and formulas. A 2D array (or list of lists) can be used to represent the rows and columns in the spreadsheet.
+
 Step 2: Process formulas and values
 Check if the cell contains a value or formula:
 If the cell contains a number, simply store the number.
 If the cell contains a formula (e.g., =A1+B1), you need to evaluate the formula.
+
 Evaluate formulas:
 For each formula, parse the formula to identify cell references (e.g., A1, B3).
+
 Calculate the value of the referenced cells (this will involve resolving the values of the cells referenced by the formula).
+
 Handle dependencies: You need to ensure formulas that depend on other cells are calculated in the correct order. This might involve iterating through the grid multiple times, calculating dependencies before referencing them.
+
 Step 3: Calculate and replace formulas
 Recursive Evaluation: When encountering a formula, you should recursively evaluate its components, replacing cell references with actual values (e.g., if a formula references A1, you need to evaluate A1 before evaluating the formula).
 
@@ -45,22 +55,89 @@ Handle references to other cells: For example, when evaluating C1, which contain
 
 Step 4: Output the final results in CSV format
 After all cells have been evaluated, output the results as a CSV with the computed values replacing the formulas.
-Pseudocode:
-java
-Copy code
-// Parse CSV into a 2D array of cells
-// For each cell, check if it's a formula or a value
-// If it's a formula, recursively evaluate the formula by resolving cell references
-// Output the results back into a new CSV file
 
-// Sample function to evaluate a formula
-public double evaluateFormula(String formula, Map<String, Double> cellValues) {
-    // Parse the formula (e.g., =A1+B2)
-    // Resolve cell references (e.g., A1 -> value of A1)
-    // Compute the result
-    return result;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import javax.script.*;
+import java.io.*;
+import java.util.*;
+
+public class CSVFormulaEvaluator {
+
+    
+    private static double evaluateFormula(String formula, List<List<String>> data) {
+        formula = formula.substring(1); // Remove the '=' at the start
+        for (int row = 0; row < data.size(); row++) {
+            for (int col = 0; col < data.get(row).size(); col++) {
+                String cellName = (char) (65 + col) + (row + 1) + ""; // e.g., A1, B1, C1
+                String value = data.get(row).get(col);
+                if (value != null && value.matches("-?\\d+(\\.\\d+)?")) {
+                    formula = formula.replace(cellName, value); // Replace cell reference with value
+                }
+            }
+        }
+
+        
+        try {
+            ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+            return (double) engine.eval(formula);
+        } catch (ScriptException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    
+    public static String processCSV(String inputCsv) throws IOException {
+        CSVParser parser = CSVParser.parse(inputCsv, CSVFormat.DEFAULT);
+        List<List<String>> data = new ArrayList<>();
+        for (CSVRecord record : parser) {
+            List<String> row = new ArrayList<>();
+            for (String value : record) {
+                row.add(value);
+            }
+            data.add(row);
+        }
+
+        
+        for (int row = 0; row < data.size(); row++) {
+            for (int col = 0; col < data.get(row).size(); col++) {
+                String value = data.get(row).get(col);
+                if (value != null && value.startsWith("=")) {
+                    // Evaluate and replace the formula with the result
+                    double result = evaluateFormula(value, data);
+                    data.get(row).set(col, String.valueOf(result));
+                }
+            }
+        }
+
+        StringWriter output = new StringWriter();
+        BufferedWriter writer = new BufferedWriter(output);
+        for (List<String> row : data) {
+            writer.write(String.join(",", row));
+            writer.newLine();
+        }
+        writer.close();
+        return output.toString();
+    }
+
+    public static void main(String[] args) {
+        String inputCsv = "5,3,=5+A1\n7,8,=A2+B2\n9,=4+5,=C2+B3";
+        try {
+            String resultCsv = processCSV(inputCsv);
+            System.out.println(resultCsv); // Output the evaluated CSV
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
+
+****************************************************************************
+
+
 2. What type of errors would you check for?
+
 Invalid Cell References: A formula may reference a non-existent cell or a cell that has not yet been evaluated.
 
 For example, =A1 + Z100 could be invalid if Z100 does not exist in the data.
@@ -76,6 +153,9 @@ Division by Zero: If a formula attempts to divide by zero, an exception or error
 
 Example: =A1/0.
 Formula Evaluation Order: Ensure that cells are evaluated in the correct order, resolving dependencies before evaluating cells that rely on those values.
+
+*************************************************************************
+
 
 3. How might a user break your code?
 Several issues could arise if a user improperly constructs formulas or provides data in an unsupported format:
